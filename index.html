@@ -1,0 +1,157 @@
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>3D Комната — интерактив</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html,body{margin:0;height:100%;background:#0f0f0f;color:#fff;font-family:Arial}
+    #ui{position:fixed;top:10px;left:10px;z-index:10;display:flex;flex-direction:column;gap:6px}
+    button{padding:8px 12px;border:0;border-radius:8px;background:#1f1f1f;color:#fff;font-size:14px}
+    button:active{transform:scale(.99)}
+    #hint{position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,.55);padding:8px 12px;border-radius:10px}
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <button id="btnDay">🌞 День</button>
+    <button id="btnNight">🌙 Ночь</button>
+    <button id="btnLight">💡 Свет</button>
+    <button id="btnNeon">🌈 Неон</button>
+    <button id="btnTop">⬆️ Сверху</button>
+    <button id="btnDoor">🚪 От двери</button>
+    <button id="btnBed">🛏 Кровать</button>
+    <button id="btnDesk">🖥 Стол</button>
+  </div>
+  <div id="hint">👆 Крути пальцем/мышью • 🔍 Пинч/колесо</div>
+
+  <!-- Надёжный вариант: ES Modules -->
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.158.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js";
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.01, 100);
+    camera.position.set(4, 4, 6);
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(1.75, 1.2, 1.75);
+    controls.update();
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    mainLight.position.set(5, 10, 7);
+    scene.add(mainLight);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+    scene.add(ambient);
+
+    const neonLight = new THREE.PointLight(0x8a2be2, 1.2, 12);
+    neonLight.position.set(1.75, 0.25, 1.75);
+    scene.add(neonLight);
+
+    function addBox(x, y, z, w, h, d, color) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.05 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x + w/2, y + h/2, z + d/2);
+      scene.add(mesh);
+      return mesh;
+    }
+
+    // ---- Room (meters): 3.5 x 3.5 x 3.2
+    addBox(0, 0, 0, 3.5, 0.05, 3.5, 0x777777);      // floor
+    addBox(0, 3.2, 0, 3.5, 0.05, 3.5, 0xeeeeee);    // ceiling
+
+    // walls (simple, no door hole for viewer-demo)
+    addBox(0, 0, 0, 0.05, 3.2, 3.5, 0xdcdcdc);       // west
+    addBox(3.45, 0, 0, 0.05, 3.2, 3.5, 0xdcdcdc);    // east
+    addBox(0, 0, 0, 3.5, 3.2, 0.05, 0xdcdcdc);       // south
+    addBox(0, 0, 3.45, 3.5, 3.2, 0.05, 0xdcdcdc);    // north
+
+    // ---- Furniture per your plan
+    // Wardrobe 1.8 x 0.6 x 2.3 along south wall, right from door zone
+    addBox(0.95, 0, 0.05, 1.8, 2.3, 0.6, 0xcfcfd6);
+
+    // Bed 1.6 x 2.0 x 0.45 along right wall
+    addBox(1.9, 0, 1.3, 1.6, 0.45, 2.0, 0x8d8d96);
+
+    // Desk near north-west
+    addBox(0.05, 0, 2.0, 0.7, 0.75, 1.6, 0xbfae8f);
+
+    // Chair block
+    addBox(0.95, 0, 2.55, 0.6, 1.1, 0.6, 0x1f1f22);
+
+    // ---- Modes
+    function setDay() {
+      scene.background.set(0xededed);
+      ambient.intensity = 0.85;
+      mainLight.intensity = 1.2;
+    }
+    function setNight() {
+      scene.background.set(0x111111);
+      ambient.intensity = 0.25;
+      mainLight.intensity = 0.9;
+    }
+    function toggleMainLight(){ mainLight.visible = !mainLight.visible; }
+    function toggleNeon(){ neonLight.visible = !neonLight.visible; }
+
+    // Views
+    function viewTop(){
+      camera.position.set(1.75, 7, 1.75);
+      controls.target.set(1.75, 0, 1.75);
+      controls.update();
+    }
+    function viewDoor(){
+      camera.position.set(1.4, 1.6, -2.2);
+      controls.target.set(1.75, 1.0, 1.75);
+      controls.update();
+    }
+    function viewBed(){
+      camera.position.set(4.4, 1.4, 2.2);
+      controls.target.set(2.9, 0.6, 2.1);
+      controls.update();
+    }
+    function viewDesk(){
+      camera.position.set(-2.2, 1.4, 3.4);
+      controls.target.set(0.6, 0.6, 2.7);
+      controls.update();
+    }
+
+    // UI hooks
+    document.getElementById("btnDay").onclick = setDay;
+    document.getElementById("btnNight").onclick = setNight;
+    document.getElementById("btnLight").onclick = toggleMainLight;
+    document.getElementById("btnNeon").onclick = toggleNeon;
+    document.getElementById("btnTop").onclick = viewTop;
+    document.getElementById("btnDoor").onclick = viewDoor;
+    document.getElementById("btnBed").onclick = viewBed;
+    document.getElementById("btnDesk").onclick = viewDesk;
+
+    // Default: night with neon
+    setNight();
+    neonLight.visible = true;
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    function animate(){
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
